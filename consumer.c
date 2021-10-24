@@ -6,7 +6,7 @@
  
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>    // gets rid of "implicit declaration of function 'truncate' warning
+#include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/shm.h>
@@ -24,12 +24,16 @@ struct sharedBuffer {
 };
  
 int main() {
+    // allocate shared memory
     int shm_fd = shm_open("buffer", O_RDWR, 0666);
     
+    // resize the shared memory 
     ftruncate(shm_fd, sizeof(struct sharedBuffer));
     
+    // create a mapping between process's address space and shared memory
     struct sharedBuffer *bufferPtr = mmap(0, sizeof(struct sharedBuffer), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
+    // semaphores for synchronization between the two processes
     sem_t *full = sem_open("full", O_CREAT, 0666, 0);
     sem_t *empty = sem_open("empty", O_CREAT, 0666, 2);
     sem_t *mutex = sem_open("mutex", O_CREAT, 0666, 1);
@@ -37,7 +41,6 @@ int main() {
     
     // initialization before consumption
     bufferPtr->out = bufferPtr->array;
-    
     int numOfLoops = 5;
     while (numOfLoops > 0) {
         sem_wait(full);
