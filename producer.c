@@ -13,7 +13,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <semaphore.h>
- 
+
+// max size for shared buffer; must be the same for both processes
 #define bufferSize 2
  
 // shared buffer between producer and consumer
@@ -58,7 +59,12 @@ int main() {
         }
 
         sem_post(mutex);
-        printf("Producer:\t[%c, %c]\n", bufferPtr->array[0], bufferPtr->array[1]);
+        printf("Producer:\t[");
+        for (int i = 0; i < bufferSize; ++i) {
+            printf("%c", bufferPtr->array[i]);
+            if (i != (bufferSize - 1)) { printf(", "); }
+        }
+        printf("]\n");
         sem_post(full);
         
         --numOfLoops;
