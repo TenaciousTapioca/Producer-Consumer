@@ -19,13 +19,11 @@
 // shared buffer between producer and consumer
 struct sharedBuffer {
     char array[bufferSize];
-    char *in;
-    char *out;
 };
  
 int main() {
     // allocate shared memory
-    int shm_fd = shm_open("buffer", O_CREAT | O_RDWR, 0666);
+    int shm_fd = shm_open("/buffer", O_CREAT | O_RDWR, 0666);
     
     // resize the shared memory
     ftruncate(shm_fd, sizeof(struct sharedBuffer));
@@ -42,8 +40,8 @@ int main() {
     for (int i = 0; i < bufferSize; ++i) {
         bufferPtr->array[i] = ' ';
     }
-    bufferPtr -> in = bufferPtr -> array;
     
+    int in = 0;
     int numOfLoops = 5; 
     printf("\nProducer can produce %d items.\n", numOfLoops);  
     while (numOfLoops > 0) {
@@ -51,12 +49,12 @@ int main() {
         sleep(rand() % 2 + 1);
         sem_wait(mutex);
         
-        // accessing shared buffer
-        *(bufferPtr -> in) = 'x';
-        if (bufferPtr->in == &(bufferPtr->array[bufferSize - 1])) {
-            bufferPtr->in = bufferPtr->array;
+        // Critical Section: accessing shared buffer
+        bufferPtr->array[in] = 'x';
+        if (in == (bufferSize - 1)) {
+            in = 0;
         } else {
-            ++(bufferPtr->in);
+            ++in;
         }
 
         sem_post(mutex);
@@ -80,7 +78,7 @@ int main() {
     // unmap shared memory
     munmap(bufferPtr, sizeof(struct sharedBuffer));
     close(shm_fd);
-    shm_unlink("buffer");
+    shm_unlink("/buffer");
     
     return 0;
 }
