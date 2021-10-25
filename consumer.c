@@ -19,13 +19,11 @@
 // shared buffer between producer and consumer
 struct sharedBuffer {
     char array[bufferSize];
-    char *in;
-    char *out;
 };
  
 int main() {
     // allocate shared memory
-    int shm_fd = shm_open("buffer", O_RDWR, 0666);
+    int shm_fd = shm_open("/buffer", O_RDWR, 0666);
     
     // resize the shared memory 
     ftruncate(shm_fd, sizeof(struct sharedBuffer));
@@ -37,22 +35,21 @@ int main() {
     sem_t *full = sem_open("full", O_CREAT, 0666, 0);
     sem_t *empty = sem_open("empty", O_CREAT, 0666, 2);
     sem_t *mutex = sem_open("mutex", O_CREAT, 0666, 1);
-
     
     // initialization before consumption
-    bufferPtr->out = bufferPtr->array;
+    int out = 0;
     int numOfLoops = 5;
     while (numOfLoops > 0) {
         sem_wait(full);
         sleep(rand() % 2 + 1);
         sem_wait(mutex);
 
-        // accessing shared buffer
-        *(bufferPtr -> out) = ' ';
-        if (bufferPtr->out == &(bufferPtr->array[bufferSize - 1])) {
-            bufferPtr->out = bufferPtr->array;
+        // Critical Section: accessing shared buffer
+        bufferPtr->array[out] = ' ';
+        if (out == (bufferSize - 1)) {
+            out = 0;
         } else {
-            ++(bufferPtr->out);
+            ++out;
         }
         
         sem_post(mutex);
@@ -75,7 +72,9 @@ int main() {
     // unmap shared memory
     munmap(bufferPtr, sizeof(struct sharedBuffer));
     close(shm_fd);
-    shm_unlink("buffer");
+    shm_unlink("/buffer");
+    
+    printf("Press 'Enter' to end...\n");
     
     return 0;
 }
