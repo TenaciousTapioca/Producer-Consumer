@@ -13,19 +13,23 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <semaphore.h>
- 
+
+// max size for shared buffer; must be the same for both processes
 #define bufferSize 2
  
 // shared buffer between producer and consumer
 struct sharedBuffer {
     char array[bufferSize];
-    char *in;
-    char *out;
 };
  
 int main() {
-    // allocate shared memory
-    int shm_fd = shm_open("buffer", O_RDWR, 0666);
+    // wait until producer has created shared memory
+    int shm_fd;
+    int shmCreated = 0;
+    while (shmCreated == 0) {
+        shm_fd = shm_open("/buffer", O_RDWR, 0666);
+        if (shm_fd >= 0) { shmCreated = 1; }
+    }
     
     // resize the shared memory 
     ftruncate(shm_fd, sizeof(struct sharedBuffer));
@@ -37,26 +41,30 @@ int main() {
     sem_t *full = sem_open("full", O_CREAT, 0666, 0);
     sem_t *empty = sem_open("empty", O_CREAT, 0666, 2);
     sem_t *mutex = sem_open("mutex", O_CREAT, 0666, 1);
-
     
     // initialization before consumption
-    bufferPtr->out = bufferPtr->array;
+    int out = 0;
     int numOfLoops = 5;
     while (numOfLoops > 0) {
         sem_wait(full);
         sleep(rand() % 2 + 1);
         sem_wait(mutex);
 
-        // accessing shared buffer
-        *(bufferPtr -> out) = ' ';
-        if (bufferPtr->out == &(bufferPtr->array[bufferSize - 1])) {
-            bufferPtr->out = bufferPtr->array;
+        // Critical Section: accessing shared buffer
+        bufferPtr->array[out] = ' ';
+        if (out == (bufferSize - 1)) {
+            out = 0;
         } else {
-            ++(bufferPtr->out);
+            ++out;
         }
         
         sem_post(mutex);
-        printf("Consumer:\t[%c, %c]\n", bufferPtr->array[0], bufferPtr->array[1]);
+        printf("Consumer:\t[");
+        for (int i = 0; i < bufferSize; ++i) {
+            printf("%c", bufferPtr->array[i]);
+            if (i != (bufferSize - 1)) { printf(", "); }
+        }
+        printf("]\n");
         sem_post(empty);
         
         --numOfLoops;
@@ -75,7 +83,9 @@ int main() {
     // unmap shared memory
     munmap(bufferPtr, sizeof(struct sharedBuffer));
     close(shm_fd);
-    shm_unlink("buffer");
+    shm_unlink("/buffer");
+    
+    printf("Press 'Enter' to end...\n");
     
     return 0;
 }
