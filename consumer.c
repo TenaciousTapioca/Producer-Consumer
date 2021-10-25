@@ -22,8 +22,13 @@ struct sharedBuffer {
 };
  
 int main() {
-    // allocate shared memory
-    int shm_fd = shm_open("/buffer", O_RDWR, 0666);
+    // wait until producer has created shared memory
+    int shm_fd;
+    int shmCreated = 0;
+    while (shmCreated == 0) {
+        shm_fd = shm_open("/buffer", O_RDWR, 0666);
+        if (shm_fd >= 0) { shmCreated = 1; }
+    }
     
     // resize the shared memory 
     ftruncate(shm_fd, sizeof(struct sharedBuffer));
