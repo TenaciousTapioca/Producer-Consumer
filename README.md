@@ -6,6 +6,9 @@ This implementation is written in C and involves a producer process and a consum
 - A visualization of a producer and consumer using a shared array, and each process prints out the new array onto the terminal after modifying it.
   - The producer process inserts an 'x' into the shared array.
   - The consumer process "consumes" the 'x' in the shared array.
+- Can modify (must be the same for both programs):
+  - `#define bufferSize` to change the array in shared memory
+  - `int numOfLoops` to change how many times the producer and consumer will modify the shared memory.
 <p align="center">
   <img src="images/example1.png" width="400"><img src="images/example2.png" width="400">
   <img src="images/runningExample.gif" width="800">
