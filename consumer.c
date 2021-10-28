@@ -39,7 +39,7 @@ int main() {
 
     // semaphores for synchronization between the two processes
     sem_t *full = sem_open("full", O_CREAT, 0666, 0);
-    sem_t *empty = sem_open("empty", O_CREAT, 0666, 2);
+    sem_t *empty = sem_open("empty", O_CREAT, 0666, bufferSize);
     sem_t *mutex = sem_open("mutex", O_CREAT, 0666, 1);
     
     // initialization before consumption
